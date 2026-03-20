@@ -306,9 +306,18 @@ class EdAPI:
         _throw_error(f"Failed to list users for course {course_id}", response.content)
 
     @_ensure_login
-    def get_thread(self, thread_id: int) -> API_Thread_WithComments:
+    def get_thread(
+        self,
+        thread_id: int,
+        require_user_info: bool = False,
+    ) -> API_Thread_WithComments:
         """
         Retrieve the details for a thread, given its id.
+
+        The returned thread dict will include a "users" key with user
+        objects from the response when available. If require_user_info
+        is True, raises EdError when user info is missing; otherwise
+        silently omits it.
 
         GET /api/threads/<thread_id>
         """
@@ -316,16 +325,32 @@ class EdAPI:
         response = self._request("GET", thread_url)
         if response.ok:
             response_json: API_GetThread_Response = response.json()
-            return response_json["thread"]
+            thread = response_json["thread"]
+            users = response_json.get("users")
+            if users:
+                thread["users"] = users
+            elif require_user_info:
+                raise EdError(
+                    {"message": f"User info not found in response for thread {thread_id}."}
+                )
+            return thread
 
         _throw_error(f"Failed to get thread {thread_id}.", response.content)
 
     @_ensure_login
     def get_course_thread(
-        self, course_id: int, thread_number: int
+        self,
+        course_id: int,
+        thread_number: int,
+        require_user_info: bool = False,
     ) -> API_Thread_WithComments:
         """
         Retrieve the details for a thread in a given course, using the thread number.
+
+        The returned thread dict will include a "users" key with user
+        objects from the response when available. If require_user_info
+        is True, raises EdError when user info is missing; otherwise
+        silently omits it.
 
         GET /api/courses/<course_id>/threads/<thread_id>
         """
@@ -335,7 +360,15 @@ class EdAPI:
         response = self._request("GET", thread_url)
         if response.ok:
             response_json: API_GetThread_Response = response.json()
-            return response_json["thread"]
+            thread = response_json["thread"]
+            users = response_json.get("users")
+            if users:
+                thread["users"] = users
+            elif require_user_info:
+                raise EdError(
+                    {"message": f"User info not found in response for thread {thread_number}."}
+                )
+            return thread
 
         _throw_error(f"Failed to get thread {thread_number}.", response.content)
 

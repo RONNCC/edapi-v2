@@ -14,6 +14,7 @@ This package currently contains the following features:
 * Get user information
 * List existing threads
 * Lock and unlock threads
+* User info included in thread responses by default (`require_user_info=False` to silently skip if missing)
 * Automatic rate-limit retry with fibonacci backoff
 
 This list may expand as the package is developed further.
