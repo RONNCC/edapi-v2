@@ -37,11 +37,18 @@ Most documentation can be found in `edapi/docs/api_docs.md`; it contains documen
 
 ## Usage
 
-The bare minimum to utilize the API integration is to create a `.env` file in your project storing your API key, or store the API key in an environment variable in an equivalent manner:
+The bare minimum to utilize the API integration is to set `ED_API_TOKEN` as an environment variable, or store it in a `.env` or `local.env` file in your project directory:
 ```
 ED_API_TOKEN=your-token-here
 ```
 Your API key can be created through [https://edstem.org/us/settings/api-tokens](https://edstem.org/us/settings/api-tokens). The API key should be kept secret, and not committed through any version control system.
+
+The token is resolved in the following priority order:
+1. `ED_API_TOKEN` already set in the environment
+2. `local.env` file (walks up from the current working directory)
+3. `.env` file (walks up from the current working directory)
+
+Using `local.env` is recommended for local secrets since it is typically excluded from version control by default (add it to `.gitignore` if it isn't already).
 
 The following snippet is an example of using the API:
 ```python

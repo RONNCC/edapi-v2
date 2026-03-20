@@ -51,7 +51,8 @@ Go to
     {ANSI_BLUE("https://edstem.org/us/settings/api-tokens")}
 and create a new API token.
 
-Create a {ANSI_BLUE(".env")} file (or set up environment variables) with the {API_TOKEN_ENV_VAR} environment variable set to the API token you just created.
+Set the {API_TOKEN_ENV_VAR} environment variable to the token you just created, or add it to a {ANSI_BLUE(".env")} or {ANSI_BLUE("local.env")} file:
+    {API_TOKEN_ENV_VAR}=your-token-here
 """
 
 
@@ -118,12 +119,22 @@ class EdAPI:
 
     def _load_api_token(self) -> Optional[API_User_Response]:
         """
-        Read the API token from .env file; defaults to None if not found.
+        Read the API token from the environment or a .env/local.env file;
+        defaults to None if not found.
+
+        Priority order (highest to lowest):
+          1. ED_API_TOKEN already set in the environment
+          2. local.env file in the current working directory (or any parent)
+          3. .env file in the current working directory (or any parent)
 
         Utilizes the `/api/user` endpoint to verify the token;
         returns the response if successful.
         """
-        load_dotenv(find_dotenv(usecwd=True))
+        if os.getenv(API_TOKEN_ENV_VAR) is None:
+            # Not already in environment; try loading from files.
+            # Load .env first, then local.env with override so local.env wins.
+            load_dotenv(find_dotenv(usecwd=True))
+            load_dotenv(find_dotenv(filename="local.env", usecwd=True), override=True)
         self.api_token = os.getenv(API_TOKEN_ENV_VAR, None)
         if self.api_token is None:
             # unable to load API token

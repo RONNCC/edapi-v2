@@ -6,13 +6,18 @@ As the Ed API is still in beta, any of the official endpoints can change, and is
 
 ### `EdAPI.api_token`
 
-Stored API token from the `.env` file.
+Stored API token, loaded from the environment or a `.env`/`local.env` file.
 
 This API token is also stored as a header in the `requests.Session` object for authentication, used for all requests with the Ed API.
 
+Token resolution priority (highest to lowest):
+1. `ED_API_TOKEN` already set in the environment
+2. `local.env` file (walks up from cwd)
+3. `.env` file (walks up from cwd)
+
 ### `EdAPI.login()`
 
-Prompt user to fetch and register an API token with a `.env` file.
+Prompt user to fetch and register an API token via the environment or a `.env`/`local.env` file.
 
 If the token is found, then a brief validation check through `EdAPI.get_user_info()` is done; if this call returns `None`, then the authorization failed; otherwise, the authorizaton succeeded, and the user info is stored in an instance variable.
 
