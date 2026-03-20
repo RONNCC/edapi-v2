@@ -92,6 +92,21 @@ If the token is found, then a brief validation check through `EdAPI.get_user_inf
 
   Returns the API response JSON dict.
 
+- `EdAPI.post_comment(thread_id: int, params: PostCommentParams)`
+
+  Creates a new comment under the given thread.
+
+  The `params` dict is of the following format; all values are required.
+
+  ```python
+  {
+    "content": str,       # XML content string
+    "is_anonymous": bool,
+    "is_private": bool,
+    "type": str,          # "comment" or "answer"
+  }
+  ```
+
 - `EdAPI.upload_file(filename: str, file: bytes, content_type: str)`
 
   Uploads a file to Ed.
@@ -788,6 +803,23 @@ Request:
 ```
 
 Response: See `POST /api/files`.
+
+#### `POST /api/threads/<thread_id>/comments`
+
+Creates a new comment under the given thread.
+
+Request:
+
+```python
+{
+  "comment": {
+    "content": ContentString,
+    "is_anonymous": bool,
+    "is_private": bool,
+    "type": str  # "comment" or "answer"
+  }
+}
+```
 
 #### `POST /api/threads/<thread_id>/pin`
 
