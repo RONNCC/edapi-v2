@@ -406,6 +406,32 @@ class EdAPI:
             _throw_error(f"Failed to post comment in thread {thread_id}.", response.content)
 
     @_ensure_login
+    def post_subcomment(
+        self, comment_id: int, params: PostCommentParams
+    ):
+        """
+        Creates a new sub-comment (reply) under the given comment.
+
+        POST /api/comments/<comment_id>/comments
+        """
+        comment_url = urljoin(API_BASE_URL, f"comments/{comment_id}/comments")
+        response = self._request("POST", comment_url, json={"comment": params})
+        if not response.ok:
+            _throw_error(f"Failed to post sub-comment on comment {comment_id}.", response.content)
+
+    @_ensure_login
+    def delete_comment(self, comment_id: int) -> None:
+        """
+        Delete a comment by its id.
+
+        DELETE /api/comments/<comment_id>
+        """
+        comment_url = urljoin(API_BASE_URL, f"comments/{comment_id}")
+        response = self._request("DELETE", comment_url)
+        if not response.ok:
+            _throw_error(f"Failed to delete comment {comment_id}.", response.content)
+
+    @_ensure_login
     def edit_thread(
         self, thread_id: int, params: EditThreadParams, unlock_thread=True
     ) -> API_PutThread_Response_Thread:
