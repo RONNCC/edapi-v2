@@ -3,7 +3,9 @@ Module for interacting with the Ed API.
 """
 
 import json
+import logging
 import os
+import time
 from typing import NoReturn, Optional
 
 import requests
@@ -30,6 +32,8 @@ from .types.api_types.endpoints.user import API_User_Response
 from .types.api_types.thread import API_Thread_WithComments, API_Thread_WithUser
 from .types.api_types.user import API_User_WithEmail
 
+logger = logging.getLogger(__name__)
+
 ANSI_BLUE = lambda text: f"\u001b[34m{text}\u001b[0m"
 ANSI_GREEN = lambda text: f"\u001b[32m{text}\u001b[0m"
 ANSI_RED = lambda text: f"\u001b[31m{text}\u001b[0m"
@@ -38,6 +42,9 @@ API_BASE_URL = "https://us.edstem.org/api/"
 STATIC_FILE_BASE_URL = "https://static.us.edusercontent.com/files/"
 
 API_TOKEN_ENV_VAR = "ED_API_TOKEN"
+
+RATE_LIMIT_MAX_RETRIES = 5
+RATE_LIMIT_MAX_WAIT = 10  # seconds
 
 AUTH_MESSAGE = f"""
 Go to
@@ -179,13 +186,41 @@ class EdAPI:
         """
         del self.session.headers["Authorization"]
 
+    def _request(self, method: str, url: str, **kwargs) -> requests.Response:
+        """
+        Make an HTTP request with automatic retry on rate-limit errors.
+
+        Retries up to RATE_LIMIT_MAX_RETRIES times with fibonacci backoff
+        (1s, 1s, 2s, 3s, 5s, ...) capped at RATE_LIMIT_MAX_WAIT when
+        the API returns a rate_limit error.
+        """
+        fib_a, fib_b = 1, 1
+        for attempt in range(RATE_LIMIT_MAX_RETRIES + 1):
+            response = self.session.request(method, url, **kwargs)
+            if response.ok:
+                return response
+            # check for rate limit before giving up
+            try:
+                error_json = json.loads(response.content)
+            except (json.JSONDecodeError, TypeError):
+                return response  # not JSON, let caller handle it
+            if error_json.get("code") == "rate_limit":
+                if attempt < RATE_LIMIT_MAX_RETRIES:
+                    wait = min(fib_a, RATE_LIMIT_MAX_WAIT)
+                    logger.warning("Rate limited, retrying in %ds...", wait)
+                    time.sleep(wait)
+                    fib_a, fib_b = fib_b, fib_a + fib_b
+                    continue
+            return response
+        return response  # unreachable, but satisfies type checker
+
     @_ensure_login
     def get_user_info(self) -> API_User_Response:
         """
         Retrieve the user info from Ed.
         """
         user_info_url = urljoin(API_BASE_URL, "user")
-        response = self.session.get(user_info_url)
+        response = self._request("GET", user_info_url)
         if response.ok:
             return response.json()
 
@@ -212,7 +247,8 @@ class EdAPI:
         GET /api/users/<user_id>/profile/activity?courseID=<course_id>
         """
         list_url = urljoin(API_BASE_URL, f"users/{user_id}/profile/activity")
-        response = self.session.get(
+        response = self._request(
+            "GET",
             list_url,
             params={
                 "courseID": course_id,
@@ -244,8 +280,8 @@ class EdAPI:
         GET /api/courses/<course_id>/threads
         """
         list_url = urljoin(API_BASE_URL, f"courses/{course_id}/threads")
-        response = self.session.get(
-            list_url, params={"limit": limit, "offset": offset, "sort": sort}
+        response = self._request(
+            "GET", list_url, params={"limit": limit, "offset": offset, "sort": sort}
         )
         if response.ok:
             response_json: API_ListThreads_Response = response.json()
@@ -262,7 +298,7 @@ class EdAPI:
         GET /api/courses/<course_id>/analytics/users
         """
         list_url = urljoin(API_BASE_URL, f"courses/{course_id}/analytics/users")
-        response = self.session.get(list_url)
+        response = self._request("GET", list_url)
         if response.ok:
             response_json: API_Analytics_Users_Response = response.json()
             return response_json["users"]
@@ -277,7 +313,7 @@ class EdAPI:
         GET /api/threads/<thread_id>
         """
         thread_url = urljoin(API_BASE_URL, f"threads/{thread_id}")
-        response = self.session.get(thread_url)
+        response = self._request("GET", thread_url)
         if response.ok:
             response_json: API_GetThread_Response = response.json()
             return response_json["thread"]
@@ -296,7 +332,7 @@ class EdAPI:
         thread_url = urljoin(
             API_BASE_URL, f"courses/{course_id}/threads/{thread_number}"
         )
-        response = self.session.get(thread_url)
+        response = self._request("GET", thread_url)
         if response.ok:
             response_json: API_GetThread_Response = response.json()
             return response_json["thread"]
@@ -315,7 +351,7 @@ class EdAPI:
         Returns newly created thread object.
         """
         thread_url = urljoin(API_BASE_URL, f"courses/{course_id}/threads")
-        response = self.session.post(thread_url, json={"thread": params})
+        response = self._request("POST", thread_url, json={"thread": params})
         if response.ok:
             response_json: API_PostThread_Response = response.json()
             return response_json["thread"]
@@ -356,7 +392,7 @@ class EdAPI:
 
         thread_url = urljoin(API_BASE_URL, f"threads/{thread_id}")
         request_json: API_PutThread_Request = {"thread": thread}
-        response = self.session.put(thread_url, json=request_json)
+        response = self._request("PUT", thread_url, json=request_json)
         if response.ok:
             response_json: API_PutThread_Response = response.json()
 
@@ -384,7 +420,7 @@ class EdAPI:
         upload_url = urljoin(API_BASE_URL, "files")
         # send file through formdata
         formdata = {"attachment": (filename, file, content_type)}
-        response = self.session.post(upload_url, files=formdata)
+        response = self._request("POST", upload_url, files=formdata)
         if response.ok:
             response_json: API_PostFile_Response = response.json()
             file_id = response_json["file"]["id"]
@@ -400,7 +436,7 @@ class EdAPI:
         POST /api/threads/<thread_id>/lock
         """
         lock_url = urljoin(API_BASE_URL, f"threads/{thread_id}/lock")
-        response = self.session.post(lock_url)
+        response = self._request("POST", lock_url)
         if not response.ok:
             _throw_error(f"Failed to lock thread {thread_id}.", response.content)
 
@@ -412,6 +448,6 @@ class EdAPI:
         POST /api/threads/<thread_id>/unlock
         """
         unlock_url = urljoin(API_BASE_URL, f"threads/{thread_id}/unlock")
-        response = self.session.post(unlock_url)
+        response = self._request("POST", unlock_url)
         if not response.ok:
             _throw_error(f"Failed to unlock thread {thread_id}.", response.content)
