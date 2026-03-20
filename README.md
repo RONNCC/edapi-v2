@@ -1,10 +1,12 @@
-# edapi
+# edapi-v2
 
-This package is an (unofficial) integration of the Ed API with Python. Since as of now there is no detailed documentation on the HTTP endpoints for the Ed API, I've reverse-engineered the endpoints by snooping through Chrome devtools.
+This is a fork of [smartspot2/edapi](https://github.com/smartspot2/edapi), an (unofficial) Python wrapper for the Ed Discussion API. All credit for the original reverse-engineering of the API endpoints and the core implementation goes to [smartspot2](https://github.com/smartspot2). This fork adds some additional changes on top of their work.
 
-Further, since the Ed API is in beta, the API endpoints can change at any time, and this package may break.
+Since as of now there is no detailed documentation on the HTTP endpoints for the Ed API, the original author reverse-engineered the endpoints by using Chrome DevTools.
 
-This package is still a work in progress, and currently contains the following features:
+The Ed API is in beta, so API endpoints can change at any time and this package may break. No guarantees are made — it might work, it might not. This fork is maintained for personal use.
+
+This package currently contains the following features:
 * Authenticating through an Ed API token (accessible through [https://edstem.org/us/settings/api-tokens](https://edstem.org/us/settings/api-tokens))
 * Creating threads
 * Editing existing threads (both through global ids and through course-specific ids)
@@ -17,7 +19,10 @@ This list may expand as the package is developed further.
 
 ## Installation
 
-This package is uploaded to PyPI: [https://pypi.org/project/edapi/](https://pypi.org/project/edapi/); the easiest way to install is with `pip3 install edapi`.
+Install directly from GitHub:
+```
+pip3 install git+https://github.com/RONNCC/edapi-v2.git
+```
 
 ### Building the package
 
