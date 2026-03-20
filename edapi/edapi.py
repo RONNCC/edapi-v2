@@ -14,7 +14,7 @@ from requests.compat import urljoin
 
 from edapi.types.api_types.endpoints.analytics import API_Analytics_Users_Response
 
-from .types import EdAuthError, EdError, EditThreadParams, PostCommentParams, PostThreadParams
+from .types import EdAuthError, EdError, EditCommentParams, EditThreadParams, PostCommentParams, PostThreadParams
 from .types.api_types.endpoints.activity import (
     API_ListUserActivity_Response,
     API_ListUserActivity_Response_Item,
@@ -418,6 +418,18 @@ class EdAPI:
         response = self._request("POST", comment_url, json={"comment": params})
         if not response.ok:
             _throw_error(f"Failed to post sub-comment on comment {comment_id}.", response.content)
+
+    @_ensure_login
+    def edit_comment(self, comment_id: int, params: EditCommentParams) -> None:
+        """
+        Edit an existing comment by its id.
+
+        PUT /api/comments/<comment_id>
+        """
+        comment_url = urljoin(API_BASE_URL, f"comments/{comment_id}")
+        response = self._request("PUT", comment_url, json={"comment": params})
+        if not response.ok:
+            _throw_error(f"Failed to edit comment {comment_id}.", response.content)
 
     @_ensure_login
     def delete_comment(self, comment_id: int) -> None:

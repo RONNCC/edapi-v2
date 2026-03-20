@@ -107,6 +107,20 @@ If the token is found, then a brief validation check through `EdAPI.get_user_inf
   }
   ```
 
+- `EdAPI.edit_comment(comment_id: int, params: EditCommentParams)`
+
+  Edits an existing comment by its id.
+
+  The `params` dict is of the following format; all values are required.
+
+  ```python
+  {
+    "content": str,       # XML content string
+    "is_anonymous": bool,
+    "is_private": bool,
+  }
+  ```
+
 - `EdAPI.upload_file(filename: str, file: bytes, content_type: str)`
 
   Uploads a file to Ed.
@@ -817,6 +831,22 @@ Request:
     "is_anonymous": bool,
     "is_private": bool,
     "type": str  # "comment" or "answer"
+  }
+}
+```
+
+#### `PUT /api/comments/<comment_id>`
+
+Edits an existing comment.
+
+Request:
+
+```python
+{
+  "comment": {
+    "content": ContentString,
+    "is_anonymous": bool,
+    "is_private": bool,
   }
 }
 ```

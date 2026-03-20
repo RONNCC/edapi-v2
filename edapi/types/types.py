@@ -65,3 +65,14 @@ class PostCommentParams(TypedDict, total=True):
     is_anonymous: bool
     is_private: bool
     type: str
+
+
+class EditCommentParams(TypedDict, total=True):
+    """
+    Parameters for editing an existing comment.
+    All parameters are required.
+    """
+
+    content: str
+    is_anonymous: bool
+    is_private: bool
